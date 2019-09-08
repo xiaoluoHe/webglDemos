@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>nested triangle</title>
+  </head>
+  <body>
+    <div class="container">
+      <canvas id="webgl" width="1080" height="600" style="opacity: 0.7"></canvas>
+    </div>
+    <script src="../lib/webgl-debug.js"></script>
+    <script src="../lib/webgl-utils.js"></script>
+    <script src="../lib/cuon-utils.js"></script>
+    <script src="../lib/cuon-matrix.js"></script>
+    <script src="../lib/shader-utils.js"></script>
+
+    <script>
+      const canvas = document.querySelector("canvas");
+      const gl = canvas.getContext("webgl");
+      let loadSuccess = false;
+      loadSuccess = loadShaderFile(gl, "v.vert", gl.VERTEX_SHADER);
+      loadSuccess = loadShaderFile(gl, "f.frag", gl.FRAGMENT_SHADER);
+
+      if (!loadSuccess || !initShaders(gl, VERTEX_SHADER_SOURCE, FRAG_SHADER_SOURCE)) {
+        console.log("error");
+      }
+
+      const a_Position = gl.getAttribLocation(gl.program, "a_Position");
+      const u_fragColor = gl.getUniformLocation(gl.program, "u_fragColor");
+
+      const vertices = [
+        { x: 0.0, y: 0.0866, dx: (2 * Math.random() - 1) / 200, dy: (2 * Math.random() - 1) / 200 },
+        {
+          x: 0.05,
+          y: -0.0866,
+          dx: (2 * Math.random() - 1) / 300,
+          dy: (2 * Math.random() - 1) / 300
+        },
+        {
+          x: -0.05,
+          y: -0.0866,
+          dx: (2 * Math.random() - 1) / 300,
+          dy: (2 * Math.random() - 1) / 300
+        }
+      ];
+
+      function vertices2TypedArr(vertices) {
+        const vArr = new Array();
+        for (const vert of vertices) {
+          vArr.push(vert.x);
+          vArr.push(vert.y);
+        }
+        return new Float32Array(vArr);
+      }
+
+      const v_buffer = gl.createBuffer();
+
+      if (!v_buffer) {
+        console.log("error create buffer!");
+      }
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, v_buffer);
+
+      gl.bufferData(gl.ARRAY_BUFFER, vertices2TypedArr(vertices), gl.DYNAMIC_DRAW);
+
+      gl.vertexAttribPointer(a_Position, 2, gl.FLOAT, false, 0, 0);
+
+      gl.enableVertexAttribArray(a_Position);
+
+      let drawMode = gl.LINE_LOOP;
+      function randomDraw() {
+        for (let vert of vertices) {
+          vert.x += vert.dx;
+          vert.y += vert.dy;
+          vert.dx *= vert.x > 1 || vert.x < -1 ? -1 : 1;
+          vert.dy *= vert.y > 1 || vert.y < -1 ? -1 : 1;
+        }
+        // 重心坐标是顶点坐标的算术平均
+        const [Px, Py] = [
+          vertices.reduce((acc, cur) => acc + cur.x, 0) / 3,
+          vertices.reduce((acc, cur) => acc + cur.y, 0) / 3
+        ];
+
+        //计算距离和
+        const dist = vertices.reduce((acc, cur) => {
+          return acc + Math.pow(cur.x - Px, 2) + Math.pow(cur.y - Py, 2);
+        }, 0);
+
+        const MAX_LOOP_DIST = 0.5;
+        const MAX_CON_DIST = 1;
+        if (dist > MAX_LOOP_DIST && dist <= MAX_CON_DIST) {
+          drawMode = gl.LINE_STRIP;
+          gl.uniform4f(u_fragColor, 1.0, 0.0, 1.0, (MAX_CON_DIST - dist) / 1.5);
+          // gl.clear(gl.COLOR_BUFFER_BIT);
+          gl.drawArrays(gl.POINTS, 0, 3);
+        } else if (dist > MAX_CON_DIST) {
+          drawMode = gl.POINTS;
+          gl.uniform4f(u_fragColor, 1.0, 0.0, 1.0, 0.5);
+        } else {
+          drawMode = gl.LINE_LOOP;
+          gl.uniform4f(u_fragColor, 1.0, 0.0, 1.0, (MAX_CON_DIST - dist) / 1.5);
+          // gl.clear(gl.COLOR_BUFFER_BIT);
+
+          // gl.drawArrays(gl.POINTS, 0, 3);
+        }
+
+        gl.bufferData(gl.ARRAY_BUFFER, vertices2TypedArr(vertices), gl.STREAM_DRAW);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.drawArrays(drawMode, 0, 3);
+        requestAnimationFrame(randomDraw);
+      }
+
+      requestAnimationFrame(randomDraw);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>test webgl</title>
+  </head>
+  <body>
+    <div class="container">
+      <canvas id="glCanvas" width="1080" height="600"></canvas>
+    </div>
+    <script src="../lib/cuon-utils.js"></script>
+    <script>
+      const canvas = document.querySelector("canvas");
+      const gl = canvas.getContext("webgl");
+      gl.clearColor(0.0, 0.0, 0.0, 1.0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+
+      const V_Shader = `
+          attribute vec4 a_Position;
+          void main() {
+            gl_Position = a_Position;
+            gl_PointSize = 20.0;
+          }
+        `;
+
+      const F_Shader = `
+        precision mediump float;
+        uniform vec4 u_fragColor;
+        void main() {
+          gl_FragColor = u_fragColor;
+        }
+      `;
+
+      if (!initShaders(gl, V_Shader, F_Shader)) {
+        console.log("error");
+      }
+
+      const a_Position = gl.getAttribLocation(gl.program, "a_Position");
+      const u_fragColor = gl.getUniformLocation(gl.program, "u_fragColor");
+
+      const points = [];
+
+      const drawPoints = (rect, x, y) => {
+        const [gl_X, gl_Y] = [
+          (x - rect.left - rect.width / 2) / (rect.width / 2),
+          (rect.height / 2 - (y - rect.top)) / (rect.height / 2)
+        ];
+
+        points.push([gl_X, gl_Y, 0.0]);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        for (const point of points) {
+          const color = [...point];
+          // console.log(point);
+          gl.vertexAttrib3f(a_Position, point[0], point[1], point[2]);
+          if (u_fragColor) {
+            gl.uniform4f(u_fragColor, Math.abs(color[0]), Math.abs(color[1]), Math.abs(color[2]), 1.0);
+          }
+          gl.drawArrays(gl.MESH, 0, 1);
+        }
+      };
+
+      canvas.onmousemove = e => {
+        drawPoints(e.target.getBoundingClientRect(), e.clientX, e.clientY);
+      };
+
+      canvas.onmousedown = e => {
+        drawPoints(e.target.getBoundingClientRect(), e.clientX, e.clientY);
+      };
+    </script>
+  </body>
+</html>
