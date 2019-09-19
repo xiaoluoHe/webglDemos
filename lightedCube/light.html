@@ -88,7 +88,7 @@
       lightDirection.normalize();
       gl.uniform3fv(u_LightDir, lightDirection.elements);
 
-      gl.uniform3f(u_LightColor, 0.8, 0.6, 0.5);
+      gl.uniform3f(u_LightColor, 1.0, 0.9, 0.9);
       gl.uniform3f(u_AmbientLight, 0.25, 0.3, 0.31);
 
       const mvpMatrix = new Matrix4();
@@ -150,10 +150,14 @@
         mouseCtx.y = event.clientY;
       }
 
+      var tick = 0;
       canvas.addEventListener("mousedown", event => {
-        mouseCtx.x = event.clientX;
-        mouseCtx.y = event.clientY;
-        canvas.addEventListener("mousemove", rotate);
+        clearTimeout(tick);
+        tick = setTimeout(() => {
+          mouseCtx.x = event.clientX;
+          mouseCtx.y = event.clientY;
+          canvas.addEventListener("mousemove", rotate);
+        }, 100);
       });
 
       canvas.addEventListener("mouseup", event => {
